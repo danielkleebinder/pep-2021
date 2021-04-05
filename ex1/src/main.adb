@@ -17,7 +17,7 @@ procedure Main is
 
    -- REQ1: Let n >= 1 be a natural number
    R : Positive := 29;
-   K : Positive := 4;
+   K : Positive := 6;
 
 
    -- Return record for the sum of cubes containing three distinct components
@@ -45,7 +45,10 @@ procedure Main is
    end Compute_Master;
 
    protected body Compute_Master is
-      procedure Set_Result(Result : Ptr_Sum_Of_Cubes_Record) is begin Ptr_Result := Result; end Set_Result;
+      procedure Set_Result(Result : Ptr_Sum_Of_Cubes_Record) is begin
+         -- I am only interested in the first result found
+         if Ptr_Result = null then Ptr_Result := Result; end if;
+      end Set_Result;
       procedure Reset is begin Ptr_Result := null; Ptr_Index := new Index_Record'(I => 0); end Reset;
       function Next_Index return Long_Long_Integer is begin Ptr_Index.I := Ptr_Index.I + 1; return Ptr_Index.I - 1; end Next_Index;
       function Has_Result return Boolean is begin return Ptr_Result /= null; end Has_Result;
@@ -84,22 +87,23 @@ procedure Main is
             for B in 1..To loop
                Bq := B**3;
 
+               -- Asking too often if the compute master has a result, will lead to INSANE performance issues the
+               -- more tasks we use for our computation. Moving this to the inner-most loop will result in a
+               -- #ofTasks^3 performance decrease.
+               --
+               -- Emperical observations have shown, that moving this exit condition out of the inner-most loop
+               -- improves the performance from ~10 seconds (K=3, R=29) to ~0.35 seconds (K=3, R=29).
+               exit Task_Loop when Compute_Master.Has_Result;
+
                for C in 1..To loop
                   Cq := C**3;
 
-                  -- I put this before the if block because I do not want
-                  -- other tasks to overwrite the result of another task
-                  exit Task_Loop when Compute_Master.Has_Result;
-
-                  -- Test for all combinations if any fits the sum of cubes
-                  if Aq + Bq + Cq = LLN then
-                     Compute_Master.Set_Result(new Sum_Of_Cubes_Record'(A, B, C));
-                  elsif Aq + Bq - Cq = LLN then
-                     Compute_Master.Set_Result(new Sum_Of_Cubes_Record'(A, B, -C));
-                  elsif Aq - Bq - Cq = LLN then
-                     Compute_Master.Set_Result(new Sum_Of_Cubes_Record'(A, -B, -C));
-                  elsif Aq - Bq + Cq = LLN then
-                     Compute_Master.Set_Result(new Sum_Of_Cubes_Record'(A, -B, C));
+                  -- Test for all combinations if any fits the sum of cubes.
+                  -- The compute master will assure, that only the first value will be used and cannot be overwritten.
+                  if Aq + Bq + Cq = LLN then Compute_Master.Set_Result(new Sum_Of_Cubes_Record'(A, B, C)); exit Task_Loop;
+                  elsif Aq + Bq - Cq = LLN then Compute_Master.Set_Result(new Sum_Of_Cubes_Record'(A, B, -C)); exit Task_Loop;
+                  elsif Aq - Bq - Cq = LLN then Compute_Master.Set_Result(new Sum_Of_Cubes_Record'(A, -B, -C)); exit Task_Loop;
+                  elsif Aq - Bq + Cq = LLN then Compute_Master.Set_Result(new Sum_Of_Cubes_Record'(A, -B, C)); exit Task_Loop;
                   end if;
 
                end loop;
