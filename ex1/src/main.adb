@@ -8,8 +8,6 @@
 --                                      --
 ------------------------------------------
 
--- For this exercise, I will assume, that |a| <= |b| <= |c|
-
 with Ada.Text_IO, Ada.Command_Line;
 use Ada.Text_IO, Ada.Command_Line;
 
@@ -17,7 +15,7 @@ use Ada.Text_IO, Ada.Command_Line;
 
 procedure Main is
    R : Integer := 33;
-   K : Integer := 2;
+   K : Integer := 6;
 
 
    -- Return record for the sum of cubes containing three distinct components
@@ -30,51 +28,100 @@ procedure Main is
 
    -- The task which is used for parallelization of the computation of the
    -- sum of three cubes.
-   task type Compute_Task (N : Integer;
-                                        From : Long_Long_Integer;
-                                        To : Long_Long_Integer);
+   task type Compute_Task (N : Integer) is
+      entry Check(From : in Long_Long_Integer; To : in Long_Long_Integer);
+   end Compute_Task;
    task body Compute_Task is
-      Counter : Long_Long_Integer := 0;
-      A, B, C : Long_Long_Integer := 0;
+      Dim, Dim_Squared : Long_Long_Integer := 0;
+      Aq, Bq, Cq : Long_Long_Integer := 0;
+      LLN : Long_Long_Integer := Long_Long_Integer(N);
+      Ptr_Result : access Sum_Of_Cubes_Record;
    begin
       loop
 
-         -- Go from 1 to -1 to 2 to -2 to 3 to -3, ...
-         A := (if Counter mod 2 = 0 then (-A) + 1 else -A);
-         B := 0;
+         select
+            accept Check(From : in Long_Long_Integer; To : in Long_Long_Integer) do
 
-         for I in 0..(A*2) loop
+               Put_Line("  Start check from" & Long_Long_Integer'Image(From) & " to" & Long_Long_Integer'Image(To));
 
-            -- Go from 1 to -1 to 2 to -2 to 3 to -3, ...
-            B := (if I mod 2 = 0 then (-B) + 1 else -B);
-            C := 0;
+               --
+               -- Generates 3-tuples from "From" to "To"
+               --
+               -- Example:
+               --   From := 1, To := 3
+               --   [ (1,1,1), (1,1,2), (1,1,3),
+               --     (1,2,1), (1,2,2), (1,2,3),
+               --     (1,3,1), (1,3,2), (1,3,3), ...]
+               --
+               -- Those tuples are then used to check all possible A³, B³ and C³ combinations
+               --
+               for A in From..To loop
 
-            for J in 0..(B*2) loop
+                  Aq := A**3;
 
-               -- Go from 1 to -1 to 2 to -2 to 3 to -3, ...
-               C := (if J mod 2 = 0 then (-C) + 1 else -C);
+                  for B in From..To loop
 
-               if (A**3 + B**3 + C**3) = Long_Long_Integer(N) then
-                  goto End_Of_Task;
-               end if;
+                     Bq := B**3;
 
-            end loop;
+                     for C in From..To loop
 
-         end loop;
+                        Cq := C**3;
 
-         Counter := Counter + 1;
+                        if Aq + Bq + Cq = LLN then
+                           Ptr_Result := new Sum_Of_Cubes_Record'(A, B, C);
+                        elsif Aq + Bq - Cq = LLN then
+                           Ptr_Result := new Sum_Of_Cubes_Record'(A, B, -C);
+                        elsif Aq - Bq - Cq = LLN then
+                           Ptr_Result := new Sum_Of_Cubes_Record'(A, -B, -C);
+                        elsif Aq - Bq + Cq = LLN then
+                           Ptr_Result := new Sum_Of_Cubes_Record'(A, -B, C);
+                        end if;
+
+                        if Ptr_Result /= null then
+
+                           Put_Line("  Found results for:"
+                                    & Integer'Image(N) & " = ("
+                                    & Long_Long_Integer'Image(Ptr_Result.A) & ")³ + ("
+                                    & Long_Long_Integer'Image(Ptr_Result.B) & ")³ + ("
+                                    & Long_Long_Integer'Image(Ptr_Result.C) & ")³");
+                           Ptr_Result := null;
+                           exit;
+                        end if;
+
+                     end loop;
+                  end loop;
+               end loop;
+
+
+               Put_Line("  Check done");
+            end Check;
+         or
+            terminate;
+         end select;
       end loop;
-      <<End_Of_Task>>
    end Compute_Task;
 
 
    -- Computes the sum of cubes of the given N using the given number of
    -- tasks and returns a record containing the result.
    function Compute_Sum_Of_Cubes(N : in Integer; Num_Of_Tasks: in Integer) return Sum_Of_Cubes_Record is
-      type Ptr_Compute_Task is access Compute_Task;
-      type Ptr_Compute_Task_Array is array(0..Num_Of_Tasks) of Ptr_Compute_Task;
+      Compute_Task_Array : array(0..Num_Of_Tasks) of Compute_Task(N);
+      Step_Size : constant Long_Long_Integer := 1_000;
+      Counter : Long_Long_Integer := 1;
+      I : Integer := 0;
    begin
-      return (1, 2, Long_Long_Integer'Last);
+      loop
+         Put_Line("Task Index:" & Integer'Image(I mod Num_Of_Tasks));
+         select
+            Compute_Task_Array(I mod Num_Of_Tasks).Check(Counter, Counter + Step_Size);
+            I := I + 1;
+            Counter := Counter + Step_Size;
+         else
+            null;
+         end select;
+         exit when I > 10;
+      end loop;
+      return (1, Long_Long_Integer(N), Long_Long_Integer'Last);
    end Compute_Sum_Of_Cubes;
 
 
@@ -91,7 +138,7 @@ begin
    declare
       Result : Sum_Of_Cubes_Record;
    begin
-      for N in 1..R loop
+      for N in 2..R loop
          if (N mod 9) /= 4 and (N mod 9) /= 5 then
 
             Result := Compute_Sum_Of_Cubes(N, K);
