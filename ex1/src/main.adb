@@ -16,9 +16,8 @@ use Ada.Text_IO, Ada.Command_Line;
 procedure Main is
 
    -- REQ1: Let n >= 1 be a natural number
-   type Positive_Integer is range 1..Integer'Last;
-   R : Positive_Integer := 29;
-   K : Positive_Integer := 4;
+   R : Positive := 29;
+   K : Positive := 4;
 
 
    -- Return record for the sum of cubes containing three distinct components
@@ -56,7 +55,7 @@ procedure Main is
 
    -- The task which is used for parallelization of the computation of the
    -- sum of three cubes.
-   task type Compute_Task (N : Positive_Integer);
+   task type Compute_Task (N : Positive);
    task body Compute_Task is
       Step_Size : constant Long_Long_Integer := 50;
       Aq, Bq, Cq : Long_Long_Integer := 0;
@@ -113,7 +112,7 @@ procedure Main is
 
    -- Computes the sum of cubes of the given N using the given number of
    -- tasks and returns a record containing the result.
-   function Compute_Sum_Of_Cubes(N : Positive_Integer; Num_Of_Tasks : Positive_Integer) return Sum_Of_Cubes_Record is
+   function Compute_Sum_Of_Cubes(N : Positive; Num_Of_Tasks : Positive) return Sum_Of_Cubes_Record is
       Result : Sum_Of_Cubes_Record;
       procedure Multi_Task_Compute is
          Compute_Task_Array : array(0..Num_Of_Tasks) of Compute_Task(N);
@@ -128,13 +127,13 @@ procedure Main is
 
    -- Prints the computational result of one N. This procedure applies
    -- certain beautifications.
-   procedure Print_Computation_Result(Result : Sum_Of_Cubes_Record; N : Positive_Integer) is
+   procedure Print_Computation_Result(Result : Sum_Of_Cubes_Record; N : Positive) is
       AS : String := Long_Long_Integer'Image(Result.A);
       BS : String := Long_Long_Integer'Image(Result.B);
       CS : String := Long_Long_Integer'Image(Result.C);
    begin
       Put("  ");
-      Put(Positive_Integer'Image(N) & " =");
+      Put(Positive'Image(N) & " =");
       Put((if Result.A < 0 then " (" & AS & ")" else AS) & "³ +");
       Put((if Result.B < 0 then " (" & BS & ")" else BS) & "³ +");
       Put((if Result.C < 0 then " (" & CS & ")" else CS) & "³");
@@ -143,9 +142,12 @@ procedure Main is
 
 
 begin
+   R := (if Argument_Count > 0 then Positive'Value(Argument(1)) else R);
+   K := (if Argument_Count > 1 then Positive'Value(Argument(2)) else K);
+
    Put_Line("Starting 'Sum of Cubes'");
-   Put_Line("  - Find solutions for n = 1, ...," & Positive_Integer'Image(R));
-   Put_Line("  - Using" & Positive_Integer'Image(K) & " tasks");
+   Put_Line("  - Find solutions for n = 1, ...," & Positive'Image(R));
+   Put_Line("  - Using" & Positive'Image(K) & " tasks");
    Put_Line("");
    Put_Line("Results: ");
 
