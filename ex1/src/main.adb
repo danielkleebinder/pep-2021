@@ -55,7 +55,6 @@ procedure Main is
       entry Check(From : Long_Long_Integer; To : Long_Long_Integer);
    end Compute_Task;
    task body Compute_Task is
-      Dim, Dim_Squared : Long_Long_Integer := 0;
       Aq, Bq, Cq : Long_Long_Integer := 0;
       LLN : Long_Long_Integer := Long_Long_Integer(N);
    begin
@@ -64,6 +63,7 @@ procedure Main is
          select
             when not Compute_Master.Has_Result =>
                accept Check(From : Long_Long_Integer; To : Long_Long_Integer) do
+                  Put_Line("From:" & Long_Long_Integer'Image(From) & " To:" & Long_Long_Integer'Image(To));
 
                   --
                   -- Generates 3-tuples from "From" to "To"
@@ -80,10 +80,10 @@ procedure Main is
                   for A in From..To loop
                      Aq := A**3;
 
-                     for B in From..To loop
+                     for B in 1..To loop
                         Bq := B**3;
 
-                        for C in From..To loop
+                        for C in 1..To loop
                            Cq := C**3;
 
                            -- I put this before the if block because I do not want
