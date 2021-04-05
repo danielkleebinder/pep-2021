@@ -14,8 +14,11 @@ use Ada.Text_IO, Ada.Command_Line;
 
 
 procedure Main is
-   R : Integer := 29;
-   K : Integer := 4;
+
+   -- REQ1: Let n >= 1 be a natural number
+   type Positive_Integer is range 1..Integer'Last;
+   R : Positive_Integer := 29;
+   K : Positive_Integer := 4;
 
 
    -- Return record for the sum of cubes containing three distinct components
@@ -53,7 +56,7 @@ procedure Main is
 
    -- The task which is used for parallelization of the computation of the
    -- sum of three cubes.
-   task type Compute_Task (N : Integer);
+   task type Compute_Task (N : Positive_Integer);
    task body Compute_Task is
       Step_Size : constant Long_Long_Integer := 50;
       Aq, Bq, Cq : Long_Long_Integer := 0;
@@ -110,7 +113,7 @@ procedure Main is
 
    -- Computes the sum of cubes of the given N using the given number of
    -- tasks and returns a record containing the result.
-   function Compute_Sum_Of_Cubes(N : Integer; Num_Of_Tasks : Integer) return Sum_Of_Cubes_Record is
+   function Compute_Sum_Of_Cubes(N : Positive_Integer; Num_Of_Tasks : Positive_Integer) return Sum_Of_Cubes_Record is
       Result : Sum_Of_Cubes_Record;
       procedure Multi_Task_Compute is
          Compute_Task_Array : array(0..Num_Of_Tasks) of Compute_Task(N);
@@ -125,13 +128,13 @@ procedure Main is
 
    -- Prints the computational result of one N. This procedure applies
    -- certain beautifications.
-   procedure Print_Computation_Result(Result : Sum_Of_Cubes_Record; N : Integer) is
+   procedure Print_Computation_Result(Result : Sum_Of_Cubes_Record; N : Positive_Integer) is
       AS : String := Long_Long_Integer'Image(Result.A);
       BS : String := Long_Long_Integer'Image(Result.B);
       CS : String := Long_Long_Integer'Image(Result.C);
    begin
       Put("  ");
-      Put(Integer'Image(N) & " =");
+      Put(Positive_Integer'Image(N) & " =");
       Put((if Result.A < 0 then " (" & AS & ")" else AS) & "³ +");
       Put((if Result.B < 0 then " (" & BS & ")" else BS) & "³ +");
       Put((if Result.C < 0 then " (" & CS & ")" else CS) & "³");
@@ -141,17 +144,20 @@ procedure Main is
 
 begin
    Put_Line("Starting 'Sum of Cubes'");
-   Put_Line("  - Find solutions for n = 1, ...," & Integer'Image(R));
-   Put_Line("  - Using" & Integer'Image(K) & " tasks");
+   Put_Line("  - Find solutions for n = 1, ...," & Positive_Integer'Image(R));
+   Put_Line("  - Using" & Positive_Integer'Image(K) & " tasks");
    Put_Line("");
    Put_Line("Results: ");
 
 
    -- This block iterates through all N in a single threaded sequential order.
    for N in 1..R loop
+
+      -- REQ2: Which for k >= 0 and neither has the form 9k+4 nor 9k+5
       if (N mod 9) /= 4 and (N mod 9) /= 5 then
-         Print_Computation_Result(Compute_Sum_Of_Cubes(N, K),N);
+         Print_Computation_Result(Compute_Sum_Of_Cubes(N, K), N);
       end if;
+
    end loop;
 
    Put_Line("");
