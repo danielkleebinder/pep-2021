@@ -40,25 +40,11 @@ procedure Main is
 
    protected body Compute_Master is
 
-      procedure Set_Result(Result : Ptr_Sum_Of_Cubes_Record) is
-      begin
-         Ptr_Result := Result;
-      end Set_Result;
+      procedure Set_Result(Result : Ptr_Sum_Of_Cubes_Record) is begin Ptr_Result := Result; end Set_Result;
+      procedure Reset is begin Ptr_Result := null; end Reset;
 
-      procedure Reset is
-      begin
-         Ptr_Result := null;
-      end Reset;
-
-      function Has_Result return Boolean is
-      begin
-         return Ptr_Result /= null;
-      end Has_Result;
-
-      function Get_Result return Sum_Of_Cubes_Record is
-      begin
-         return Ptr_Result.all;
-      end Get_Result;
+      function Has_Result return Boolean is begin return Ptr_Result /= null; end Has_Result;
+      function Get_Result return Sum_Of_Cubes_Record is begin return Ptr_Result.all; end Get_Result;
 
    end Compute_Master;
 
@@ -92,15 +78,12 @@ procedure Main is
                   --
                   Outer_Loop:
                   for A in From..To loop
-
                      Aq := A**3;
 
                      for B in From..To loop
-
                         Bq := B**3;
 
                         for C in From..To loop
-
                            Cq := C**3;
 
                            -- I put this before the if block because I do not want
