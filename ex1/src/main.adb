@@ -20,11 +20,13 @@ procedure Main is
 
    -- Return record for the sum of cubes containing three distinct components
    -- in their base form (A³ + B³ + C³ is the result).
-   type Sum_Of_Cubes_Record is
-      record
-         A, B, C : Long_Long_Integer := 0;
-      end record;
+   type Sum_Of_Cubes_Record is record A, B, C : Long_Long_Integer := 0; end record;
    type Ptr_Sum_Of_Cubes_Record is access Sum_Of_Cubes_Record;
+
+   -- The index record is used to keep track of the current data index position.
+   -- This value should be reset after the computation of each distinct N.
+   type Index_Record is record I : Long_Long_Integer := 0; end record;
+   type Ptr_Index_Record is access Index_Record;
 
 
    -- The compute master is used to accumulate results and inform the tasks
@@ -32,23 +34,20 @@ procedure Main is
    protected Compute_Master is
       procedure Set_Result(Result : Ptr_Sum_Of_Cubes_Record);
       procedure Reset;
-      procedure Next_Index(I : out Long_Long_Integer);
+      function Next_Index return Long_Long_Integer;
       function Has_Result return Boolean;
       function Get_Result return Sum_Of_Cubes_Record;
    private
-      Index : Long_Long_Integer := 0;
+      Ptr_Index : Ptr_Index_Record := new Index_Record'(I => 0);
       Ptr_Result : Ptr_Sum_Of_Cubes_Record;
    end Compute_Master;
 
    protected body Compute_Master is
-
       procedure Set_Result(Result : Ptr_Sum_Of_Cubes_Record) is begin Ptr_Result := Result; end Set_Result;
-      procedure Reset is begin Ptr_Result := null; Index := 0; end Reset;
-      procedure Next_Index(I : out Long_Long_Integer) is begin Index := Index + 1; I := Index - 1; end Next_Index;
-
+      procedure Reset is begin Ptr_Result := null; Ptr_Index := new Index_Record'(I => 0); end Reset;
+      function Next_Index return Long_Long_Integer is begin Ptr_Index.I := Ptr_Index.I + 1; return Ptr_Index.I - 1; end Next_Index;
       function Has_Result return Boolean is begin return Ptr_Result /= null; end Has_Result;
       function Get_Result return Sum_Of_Cubes_Record is begin return Ptr_Result.all; end Get_Result;
-
    end Compute_Master;
 
 
@@ -63,8 +62,7 @@ procedure Main is
    begin
       Task_Loop:
       loop
-         Compute_Master.Next_Index(From);
-         From := From * Step_Size + 1;
+         From := Compute_Master.Next_Index * Step_Size + 1;
          To := From + Step_Size;
 
          --
@@ -116,9 +114,7 @@ procedure Main is
       Result : Sum_Of_Cubes_Record;
       procedure Multi_Task_Compute is
          Compute_Task_Array : array(0..Num_Of_Tasks) of Compute_Task(N);
-      begin
-         null;
-      end Multi_Task_Compute;
+      begin null; end Multi_Task_Compute;
    begin
       Multi_Task_Compute;
       Result := Compute_Master.Get_Result;
