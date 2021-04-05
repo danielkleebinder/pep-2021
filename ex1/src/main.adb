@@ -24,77 +24,105 @@ procedure Main is
       record
          A, B, C : Long_Long_Integer := 0;
       end record;
+   type Ptr_Sum_Of_Cubes_Record is access Sum_Of_Cubes_Record;
+
+
+   -- The compute master is used to accumulate results and inform the tasks
+   -- that a result was already found.
+   protected Compute_Master is
+      procedure Set_Result(Result : Ptr_Sum_Of_Cubes_Record);
+      procedure Reset;
+      function Has_Result return Boolean;
+      function Get_Result return Sum_Of_Cubes_Record;
+   private
+      Ptr_Result : Ptr_Sum_Of_Cubes_Record;
+   end Compute_Master;
+
+   protected body Compute_Master is
+
+      procedure Set_Result(Result : Ptr_Sum_Of_Cubes_Record) is
+      begin
+         Ptr_Result := Result;
+      end Set_Result;
+
+      procedure Reset is
+      begin
+         Ptr_Result := null;
+      end Reset;
+
+      function Has_Result return Boolean is
+      begin
+         return Ptr_Result /= null;
+      end Has_Result;
+
+      function Get_Result return Sum_Of_Cubes_Record is
+      begin
+         return Ptr_Result.all;
+      end Get_Result;
+
+   end Compute_Master;
 
 
    -- The task which is used for parallelization of the computation of the
    -- sum of three cubes.
    task type Compute_Task (N : Integer) is
-      entry Check(From : in Long_Long_Integer; To : in Long_Long_Integer);
+      entry Check(From : Long_Long_Integer; To : Long_Long_Integer);
    end Compute_Task;
    task body Compute_Task is
       Dim, Dim_Squared : Long_Long_Integer := 0;
       Aq, Bq, Cq : Long_Long_Integer := 0;
       LLN : Long_Long_Integer := Long_Long_Integer(N);
-      Ptr_Result : access Sum_Of_Cubes_Record;
    begin
       loop
 
          select
-            accept Check(From : in Long_Long_Integer; To : in Long_Long_Integer) do
+            when not Compute_Master.Has_Result =>
+               accept Check(From : Long_Long_Integer; To : Long_Long_Integer) do
 
-               Put_Line("  Start check from" & Long_Long_Integer'Image(From) & " to" & Long_Long_Integer'Image(To));
+                  --
+                  -- Generates 3-tuples from "From" to "To"
+                  --
+                  -- Example:
+                  --   From := 1, To := 3
+                  --   [ (1,1,1), (1,1,2), (1,1,3),
+                  --     (1,2,1), (1,2,2), (1,2,3),
+                  --     (1,3,1), (1,3,2), (1,3,3), ...]
+                  --
+                  -- Those tuples are then used to check all possible A³, B³ and C³ combinations
+                  --
+                  Outer_Loop:
+                  for A in From..To loop
 
-               --
-               -- Generates 3-tuples from "From" to "To"
-               --
-               -- Example:
-               --   From := 1, To := 3
-               --   [ (1,1,1), (1,1,2), (1,1,3),
-               --     (1,2,1), (1,2,2), (1,2,3),
-               --     (1,3,1), (1,3,2), (1,3,3), ...]
-               --
-               -- Those tuples are then used to check all possible A³, B³ and C³ combinations
-               --
-               for A in From..To loop
+                     Aq := A**3;
 
-                  Aq := A**3;
+                     for B in From..To loop
 
-                  for B in From..To loop
+                        Bq := B**3;
 
-                     Bq := B**3;
+                        for C in From..To loop
 
-                     for C in From..To loop
+                           Cq := C**3;
 
-                        Cq := C**3;
+                           -- I put this before the if block because I do not want
+                           -- other tasks to overwrite the result of another task
+                           exit Outer_Loop when Compute_Master.Has_Result;
 
-                        if Aq + Bq + Cq = LLN then
-                           Ptr_Result := new Sum_Of_Cubes_Record'(A, B, C);
-                        elsif Aq + Bq - Cq = LLN then
-                           Ptr_Result := new Sum_Of_Cubes_Record'(A, B, -C);
-                        elsif Aq - Bq - Cq = LLN then
-                           Ptr_Result := new Sum_Of_Cubes_Record'(A, -B, -C);
-                        elsif Aq - Bq + Cq = LLN then
-                           Ptr_Result := new Sum_Of_Cubes_Record'(A, -B, C);
-                        end if;
+                           -- Test for all combinations if any fits the sum of cubes
+                           if Aq + Bq + Cq = LLN then
+                              Compute_Master.Set_Result(new Sum_Of_Cubes_Record'(A, B, C));
+                           elsif Aq + Bq - Cq = LLN then
+                              Compute_Master.Set_Result(new Sum_Of_Cubes_Record'(A, B, -C));
+                           elsif Aq - Bq - Cq = LLN then
+                              Compute_Master.Set_Result(new Sum_Of_Cubes_Record'(A, -B, -C));
+                           elsif Aq - Bq + Cq = LLN then
+                              Compute_Master.Set_Result(new Sum_Of_Cubes_Record'(A, -B, C));
+                           end if;
 
-                        if Ptr_Result /= null then
-
-                           Put_Line("  Found results for:"
-                                    & Integer'Image(N) & " = ("
-                                    & Long_Long_Integer'Image(Ptr_Result.A) & ")³ + ("
-                                    & Long_Long_Integer'Image(Ptr_Result.B) & ")³ + ("
-                                    & Long_Long_Integer'Image(Ptr_Result.C) & ")³");
-                           Ptr_Result := null;
-                           exit;
-                        end if;
-
+                        end loop;
                      end loop;
-                  end loop;
-               end loop;
+                  end loop Outer_Loop;
 
-
-               Put_Line("  Check done");
-            end Check;
+               end Check;
          or
             terminate;
          end select;
@@ -104,24 +132,26 @@ procedure Main is
 
    -- Computes the sum of cubes of the given N using the given number of
    -- tasks and returns a record containing the result.
-   function Compute_Sum_Of_Cubes(N : in Integer; Num_Of_Tasks: in Integer) return Sum_Of_Cubes_Record is
+   function Compute_Sum_Of_Cubes(N : Integer; Num_Of_Tasks: Integer) return Sum_Of_Cubes_Record is
       Compute_Task_Array : array(0..Num_Of_Tasks) of Compute_Task(N);
       Step_Size : constant Long_Long_Integer := 1_000;
       Counter : Long_Long_Integer := 1;
       I : Integer := 0;
+      Result : Sum_Of_Cubes_Record;
    begin
       loop
-         Put_Line("Task Index:" & Integer'Image(I mod Num_Of_Tasks));
          select
             Compute_Task_Array(I mod Num_Of_Tasks).Check(Counter, Counter + Step_Size);
-            I := I + 1;
-            Counter := Counter + Step_Size;
          else
             null;
          end select;
-         exit when I > 10;
+         I := I + 1;
+         Counter := Counter + Step_Size;
+         exit when Compute_Master.Has_Result;
       end loop;
-      return (1, Long_Long_Integer(N), Long_Long_Integer'Last);
+      Result := Compute_Master.Get_Result;
+      Compute_Master.Reset;
+      return Result;
    end Compute_Sum_Of_Cubes;
 
 
@@ -138,7 +168,7 @@ begin
    declare
       Result : Sum_Of_Cubes_Record;
    begin
-      for N in 2..R loop
+      for N in 1..R loop
          if (N mod 9) /= 4 and (N mod 9) /= 5 then
 
             Result := Compute_Sum_Of_Cubes(N, K);
