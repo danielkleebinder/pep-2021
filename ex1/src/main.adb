@@ -14,7 +14,7 @@ use Ada.Text_IO, Ada.Command_Line;
 
 
 procedure Main is
-   R : Integer := 33;
+   R : Integer := 29;
    K : Integer := 6;
 
 
@@ -115,7 +115,7 @@ procedure Main is
 
    -- Computes the sum of cubes of the given N using the given number of
    -- tasks and returns a record containing the result.
-   function Compute_Sum_Of_Cubes(N : Integer; Num_Of_Tasks: Integer) return Sum_Of_Cubes_Record is
+   function Compute_Sum_Of_Cubes(N : Integer; Num_Of_Tasks : Integer) return Sum_Of_Cubes_Record is
       Compute_Task_Array : array(0..Num_Of_Tasks) of Compute_Task(N);
       Step_Size : constant Long_Long_Integer := 1_000;
       Counter : Long_Long_Integer := 1;
@@ -138,37 +138,41 @@ procedure Main is
    end Compute_Sum_Of_Cubes;
 
 
+   -- Prints the computational result of one N. This procedure applies
+   -- certain beautifications.
+   procedure Print_Computation_Result(Result : Sum_Of_Cubes_Record; N : Integer) is
+      AS : String := Long_Long_Integer'Image(Result.A);
+      BS : String := Long_Long_Integer'Image(Result.B);
+      CS : String := Long_Long_Integer'Image(Result.C);
+   begin
+      Put("  ");
+      Put(Integer'Image(N) & " =");
+      Put((if Result.A < 0 then " (" & AS & ")" else AS) & "³ +");
+      Put((if Result.B < 0 then " (" & BS & ")" else BS) & "³ +");
+      Put((if Result.C < 0 then " (" & CS & ")" else CS) & "³");
+      Put_Line("");
+   end Print_Computation_Result;
+
+
 begin
-   Put_Line("Starting cube of sums");
+   Put_Line("Starting 'Sum of Cubes'");
    Put_Line("  - Find solutions for n = 1, ...," & Integer'Image(R));
    Put_Line("  - Using" & Integer'Image(K) & " tasks");
-   Put_Line("  - Integer size   :" & Integer'Image(Integer'Last));
-   Put_Line("  - L Integer size :" & Long_Integer'Image(Long_Integer'Last));
-   Put_Line("  - LL Integer size:" & Long_Long_Integer'Image(Long_Long_Integer'Last));
+   Put_Line("");
+   Put_Line("Results: ");
 
 
    -- This block iterates through all N in a single threaded sequential order.
-   declare
-      Result : Sum_Of_Cubes_Record;
-   begin
-      for N in 1..R loop
-         if (N mod 9) /= 4 and (N mod 9) /= 5 then
+   for N in 1..R loop
+      if (N mod 9) /= 4 and (N mod 9) /= 5 then
+         Print_Computation_Result(Compute_Sum_Of_Cubes(N, K),N);
+      end if;
+   end loop;
 
-            Result := Compute_Sum_Of_Cubes(N, K);
-
-            Put_Line("Found results for:"
-                     & Integer'Image(N) & " = ("
-                     & Long_Long_Integer'Image(Result.A) & ")³ + ("
-                     & Long_Long_Integer'Image(Result.B) & ")³ + ("
-                     & Long_Long_Integer'Image(Result.C) & ")³");
-
-         end if;
-      end loop;
-   end;
+   Put_Line("");
+   Put_Line("Thank you for using 'Sum of Cubes' <3");
+   Put_Line("");
 end Main;
-
-
-
 
 
 
