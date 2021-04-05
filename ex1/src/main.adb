@@ -134,9 +134,9 @@ procedure Main is
    begin
       Put("  ");
       Put(Positive'Image(N) & " =");
-      Put((if Result.A < 0 then " (" & AS & ")" else AS) & "³ +");
-      Put((if Result.B < 0 then " (" & BS & ")" else BS) & "³ +");
-      Put((if Result.C < 0 then " (" & CS & ")" else CS) & "³");
+      Put((if Result.A < 0 then " (" & AS & ")" else AS) & "^3 +");
+      Put((if Result.B < 0 then " (" & BS & ")" else BS) & "^3 +");
+      Put((if Result.C < 0 then " (" & CS & ")" else CS) & "^3");
       Put_Line("");
    end Print_Computation_Result;
 
@@ -146,6 +146,9 @@ begin
    K := (if Argument_Count > 1 then Positive'Value(Argument(2)) else K);
 
    Put_Line("Starting 'Sum of Cubes'");
+   if Argument_Count <= 0 then
+      Put_Line("  - No program parameters provided, using fallback options");
+   end if;
    Put_Line("  - Find solutions for n = 1, ...," & Positive'Image(R));
    Put_Line("  - Using" & Positive'Image(K) & " tasks");
    Put_Line("");
