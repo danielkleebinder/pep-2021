@@ -18,6 +18,7 @@ procedure Main is
    -- REQ1: Let n >= 1 be a natural number
    R : Positive := 29;
    K : Positive := 6;
+   T : Duration := 2.0;
 
 
    -- Return record for the sum of cubes containing three distinct components
@@ -122,7 +123,12 @@ procedure Main is
          Compute_Task_Array : array(0..Num_Of_Tasks) of Compute_Task(N);
       begin null; end Multi_Task_Compute;
    begin
-      Multi_Task_Compute;
+      select
+         delay T;
+         Put_Line("Computation for" & Positive'Image(N) & " takes too long - aborted!");
+      then abort
+         Multi_Task_Compute;
+      end select;
       Result := Compute_Master.Get_Result;
       Compute_Master.Reset;
       return Result;
@@ -148,6 +154,7 @@ procedure Main is
 begin
    R := (if Argument_Count > 0 then Positive'Value(Argument(1)) else R);
    K := (if Argument_Count > 1 then Positive'Value(Argument(2)) else K);
+   T := (if Argument_Count > 2 then Duration'Value(Argument(2)) else T);
 
    Put_Line("Starting 'Sum of Cubes'");
    if Argument_Count <= 0 then
@@ -155,6 +162,7 @@ begin
    end if;
    Put_Line("  - Find solutions for n = 1, ...," & Positive'Image(R));
    Put_Line("  - Using" & Positive'Image(K) & " tasks");
+   Put_Line("  - With" & Duration'Image(T) & "s timeout");
    Put_Line("");
    Put_Line("Results: ");
 
