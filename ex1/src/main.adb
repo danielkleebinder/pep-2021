@@ -18,9 +18,11 @@ procedure Main is
    Program_Start_Time : Time := Clock;
 
    -- REQ1: Let n >= 1 be a natural number
-   R : Positive := 100;
-   K : Positive := 12;
-   T : Duration := 20.0;
+   R : Positive := 40;
+   K : Positive := 6;
+
+   -- Not specifying any T on the CLI (i.e. T stays 0) means infinite computation time
+   T : Duration := 0.0;
 
 
    -- Return record for the sum of cubes containing three distinct components
@@ -127,16 +129,27 @@ procedure Main is
       procedure Multi_Task_Compute is
          Compute_Task_Array : array (0..Num_Of_Tasks) of Compute_Task(N);
       begin
-         select
-            delay T;
-            for J in Compute_Task_Array'Range loop
-               abort Compute_Task_Array(J);
-            end loop;
-         then abort
-            for J in Compute_Task_Array'Range loop
-               Compute_Task_Array(J).Wait_For_Termination;
-            end loop;
-         end select;
+         if T > 0.0 then
+            select
+
+               -- Delay T seconds if T is greater than 0. If this delay cannot be fulfilled
+               -- abort all the tasks.
+               delay T;
+
+               -- My implementation works a little bit different. Every time the compute sum
+               -- of cubes function is invoked, N new tasks are created. Therefore I have to
+               -- abort all of them here, otherwise the Multi_Task_Compute function would
+               -- never terminate.
+               for J in Compute_Task_Array'Range loop abort Compute_Task_Array(J); end loop;
+            then abort
+
+               -- Wait for the termination of all the tasks. If this does not happen within
+               -- T seconds, then abort.
+               for J in Compute_Task_Array'Range loop Compute_Task_Array(J).Wait_For_Termination; end loop;
+            end select;
+         else
+            for J in Compute_Task_Array'Range loop Compute_Task_Array(J).Wait_For_Termination; end loop;
+         end if;
       end Multi_Task_Compute;
    begin
       Multi_Task_Compute;
@@ -169,8 +182,6 @@ procedure Main is
 
 
 begin
-
-
    R := (if Argument_Count > 0 then Positive'Value(Argument(1)) else R);
    K := (if Argument_Count > 1 then Positive'Value(Argument(2)) else K);
    T := (if Argument_Count > 2 then Duration'Value(Argument(3)) else T);
