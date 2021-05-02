@@ -8,17 +8,19 @@
 --                                      --
 ------------------------------------------
 
-with Ada.Text_IO, Ada.Command_Line;
-use Ada.Text_IO, Ada.Command_Line;
+with Ada.Text_IO, Ada.Command_Line, Ada.Calendar;
+use Ada.Text_IO, Ada.Command_Line, Ada.Calendar;
 
 
 
 procedure Main is
 
+   Program_Start_Time : Time := Clock;
+
    -- REQ1: Let n >= 1 be a natural number
-   R : Positive := 29;
-   K : Positive := 6;
-   T : Duration := 2.0;
+   R : Positive := 100;
+   K : Positive := 12;
+   T : Duration := 20.0;
 
 
    -- Return record for the sum of cubes containing three distinct components
@@ -59,7 +61,9 @@ procedure Main is
 
    -- The task which is used for parallelization of the computation of the
    -- sum of three cubes.
-   task type Compute_Task (N : Positive);
+   task type Compute_Task (N : Positive) is
+      entry Wait_For_Termination;
+   end Compute_Task;
    task body Compute_Task is
       Step_Size : constant Long_Long_Integer := 50;
       Aq, Bq, Cq : Long_Long_Integer := 0;
@@ -110,8 +114,9 @@ procedure Main is
                end loop;
             end loop;
          end loop;
-
       end loop Task_Loop;
+
+      accept Wait_For_Termination;
    end Compute_Task;
 
 
@@ -120,16 +125,24 @@ procedure Main is
    function Compute_Sum_Of_Cubes(N : Positive; Num_Of_Tasks : Positive) return Sum_Of_Cubes_Record is
       Result : Sum_Of_Cubes_Record;
       procedure Multi_Task_Compute is
-         Compute_Task_Array : array(0..Num_Of_Tasks) of Compute_Task(N);
-      begin null; end Multi_Task_Compute;
+         Compute_Task_Array : array (0..Num_Of_Tasks) of Compute_Task(N);
+      begin
+         select
+            delay T;
+            for J in Compute_Task_Array'Range loop
+               abort Compute_Task_Array(J);
+            end loop;
+         then abort
+            for J in Compute_Task_Array'Range loop
+               Compute_Task_Array(J).Wait_For_Termination;
+            end loop;
+         end select;
+      end Multi_Task_Compute;
    begin
-      select
-         delay T;
-         Put_Line("Computation for" & Positive'Image(N) & " takes too long - aborted!");
-      then abort
-         Multi_Task_Compute;
-      end select;
-      Result := Compute_Master.Get_Result;
+      Multi_Task_Compute;
+      if Compute_Master.Has_Result then
+         Result := Compute_Master.Get_Result;
+      end if;
       Compute_Master.Reset;
       return Result;
    end Compute_Sum_Of_Cubes;
@@ -143,18 +156,24 @@ procedure Main is
       CS : String := Long_Long_Integer'Image(Result.C);
    begin
       Put("  ");
-      Put(Positive'Image(N) & " =");
-      Put((if Result.A < 0 then " (" & AS & ")" else AS) & "^3 +");
-      Put((if Result.B < 0 then " (" & BS & ")" else BS) & "^3 +");
-      Put((if Result.C < 0 then " (" & CS & ")" else CS) & "^3");
+      if Result.A /= 0 and Result.B /= 0 and Result.C /= 0 then
+         Put(Positive'Image(N) & " =");
+         Put((if Result.A < 0 then " (" & AS & ")" else AS) & "^3 +");
+         Put((if Result.B < 0 then " (" & BS & ")" else BS) & "^3 +");
+         Put((if Result.C < 0 then " (" & CS & ")" else CS) & "^3");
+      else
+         Put(Positive'Image(N) & ": Computation takes too long - Aborted!");
+      end if;
       Put_Line("");
    end Print_Computation_Result;
 
 
 begin
+
+
    R := (if Argument_Count > 0 then Positive'Value(Argument(1)) else R);
    K := (if Argument_Count > 1 then Positive'Value(Argument(2)) else K);
-   T := (if Argument_Count > 2 then Duration'Value(Argument(2)) else T);
+   T := (if Argument_Count > 2 then Duration'Value(Argument(3)) else T);
 
    Put_Line("Starting 'Sum of Cubes'");
    if Argument_Count <= 0 then
@@ -178,6 +197,7 @@ begin
    end loop;
 
    Put_Line("");
+   Put_Line("Program runtime was " & Duration'Image(Clock - Program_Start_Time) & " seconds");
    Put_Line("Thank you for using 'Sum of Cubes' <3");
    Put_Line("");
 end Main;
