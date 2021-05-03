@@ -39,7 +39,7 @@ procedure Main is
    Program_Start_Time : Time := Clock;
 
    -- REQ1: Let n >= 1 be a natural number
-   R : Positive := 40;
+   R : Positive := 42;
    K : Positive := 6;
 
    -- Not specifying any T on the CLI (i.e. T stays 0) means infinite computation time

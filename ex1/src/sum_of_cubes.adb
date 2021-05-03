@@ -48,7 +48,14 @@ package body Sum_Of_Cubes is
                -- Emperical observations have shown, that moving this exit condition out of the inner-most loop
                -- improves the performance from ~10 seconds (K=3, R=29) to ~0.35 seconds (K=3, R=29).
                exit Task_Loop when Compute_Master.Has_Result;
+               
+               -- I added this delay as a dispatching point. Typically the tasks are aborted really quick on timeout,
+               -- however, certain operating system might have trouble scheduling the abort correctly. Since the Ada
+               -- specification promises, that an abort statement IS GOING TO BE EXECUTED at latest when entering a
+               -- new dispatching point, this should do the trick to make this program the best it can be on every OS.
+               delay 0.0;
 
+               
                for C in 1..To loop
                   Cq := C**3;
 
