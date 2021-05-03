@@ -69,4 +69,41 @@ package body Sum_Of_Cubes is
    end Compute_Task;
    
 
+   function Compute_Sum_Of_Cubes(N : Positive; Num_Of_Tasks : Positive; Timeout : Duration := 0.0) return Sum_Of_Cubes_Record is
+      Result : Sum_Of_Cubes_Record;
+      procedure Multi_Task_Compute is
+         Compute_Task_Array : array (0..Num_Of_Tasks) of Compute_Task(N);
+      begin
+         if Timeout > 0.0 then
+            select
+
+               -- Delay T seconds if T is greater than 0. If this delay cannot be fulfilled
+               -- abort all the tasks.
+               delay Timeout;
+
+               -- My implementation works a little bit different. Every time the compute sum
+               -- of cubes function is invoked, N new tasks are created. Therefore I have to
+               -- abort all of them here, otherwise the Multi_Task_Compute function would
+               -- never terminate.
+               for J in Compute_Task_Array'Range loop abort Compute_Task_Array(J); end loop;
+            then abort
+
+               -- Wait for the termination of all the tasks. If this does not happen within
+               -- T seconds, then abort.
+               for J in Compute_Task_Array'Range loop Compute_Task_Array(J).Wait_For_Termination; end loop;
+            end select;
+         else
+            for J in Compute_Task_Array'Range loop Compute_Task_Array(J).Wait_For_Termination; end loop;
+         end if;
+      end Multi_Task_Compute;
+   begin
+      Multi_Task_Compute;
+      if Compute_Master.Has_Result then
+         Result := Compute_Master.Get_Result;
+      end if;
+      Compute_Master.Reset;
+      return Result;
+   end Compute_Sum_Of_Cubes;
+   
+
 end Sum_Of_Cubes;

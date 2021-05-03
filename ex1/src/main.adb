@@ -46,45 +46,6 @@ procedure Main is
    T : Duration := 2.0;
 
 
-   -- Computes the sum of cubes of the given N using the given number of
-   -- tasks and returns a record containing the result.
-   function Compute_Sum_Of_Cubes(N : Positive; Num_Of_Tasks : Positive) return Sum_Of_Cubes_Record is
-      Result : Sum_Of_Cubes_Record;
-      procedure Multi_Task_Compute is
-         Compute_Task_Array : array (0..Num_Of_Tasks) of Compute_Task(N);
-      begin
-         if T > 0.0 then
-            select
-
-               -- Delay T seconds if T is greater than 0. If this delay cannot be fulfilled
-               -- abort all the tasks.
-               delay T;
-
-               -- My implementation works a little bit different. Every time the compute sum
-               -- of cubes function is invoked, N new tasks are created. Therefore I have to
-               -- abort all of them here, otherwise the Multi_Task_Compute function would
-               -- never terminate.
-               for J in Compute_Task_Array'Range loop abort Compute_Task_Array(J); end loop;
-            then abort
-
-               -- Wait for the termination of all the tasks. If this does not happen within
-               -- T seconds, then abort.
-               for J in Compute_Task_Array'Range loop Compute_Task_Array(J).Wait_For_Termination; end loop;
-            end select;
-         else
-            for J in Compute_Task_Array'Range loop Compute_Task_Array(J).Wait_For_Termination; end loop;
-         end if;
-      end Multi_Task_Compute;
-   begin
-      Multi_Task_Compute;
-      if Compute_Master.Has_Result then
-         Result := Compute_Master.Get_Result;
-      end if;
-      Compute_Master.Reset;
-      return Result;
-   end Compute_Sum_Of_Cubes;
-
-
    -- Prints the computational result of one N. This procedure applies
    -- certain beautifications.
    procedure Print_Computation_Result(Result : Sum_Of_Cubes_Record; N : Positive) is
@@ -126,7 +87,7 @@ begin
 
       -- REQ2: Which for k >= 0 and neither has the form 9k+4 nor 9k+5
       if (N mod 9) /= 4 and (N mod 9) /= 5 then
-         Print_Computation_Result(Compute_Sum_Of_Cubes(N, K), N);
+         Print_Computation_Result(Compute_Sum_Of_Cubes(N, K, T), N);
       end if;
 
    end loop;
@@ -136,6 +97,4 @@ begin
    Put_Line("Thank you for using 'Sum of Cubes' <3");
    Put_Line("");
 end Main;
-
-
 
