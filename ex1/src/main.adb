@@ -20,7 +20,9 @@
 -- <program> - The programs executable file                                 --
 -- <limit>   - Specifies the upper limit of number to compute the sum of    --
 -- <tasks>   - Specifies the number of concurrent tasks used                --
--- <timeout> - Specifies the max computation time per number                --
+-- <timeout> - Specifies the max computation time per number. This is a     --
+--             floating point number (i.e. 1.218 is also valid). Specifying --
+--             "0" as timeout means infinite time per N.                    --
 --                                                                          --
 -- Please note that none of those parameters are actually required. All of  --
 -- them do indeed have a standard default value.                            --
