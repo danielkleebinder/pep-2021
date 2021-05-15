@@ -1,5 +1,5 @@
-with Railway.Tracks;
-use Railway.Tracks;
+with Railway.Tracks,Ada.Text_IO;
+use Railway.Tracks,Ada.Text_IO;
 
 package body Railway.Trains is
 
@@ -9,10 +9,12 @@ package body Railway.Trains is
       loop
          select
             accept Drive (Departure : Natural;
-                          Destination: Natural;
-                          Tracks : Tracks_Array) do
+                          Destination: Natural) do
                
-               -- Tracks(3).Enter;
+               -- Track := Tracks(3);
+               Put_Line("Start");
+               Tracks(3).Enter;
+               Put_Line("Entered");
                delay 1.0;
                -- Tracks(Departure).Leave;
                delay 1.0;

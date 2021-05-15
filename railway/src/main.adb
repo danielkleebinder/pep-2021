@@ -8,14 +8,8 @@ procedure Main is
 
    Simulation_Count : Natural := 0;
 
-   type Track_Section_Range is range 1..5;
-   type Train_Range is range 1..3;
-
-   -- There are 5 track sections in total...
-   Track_Sections : array (Track_Section_Range) of Track_Section;
-
-   -- ... and 3 trains driving on those tracks
-   Trains : array (Train_Range) of Train;
+   Tracks : aliased Track_System;
+   Trains : array (Train_Range) of Train(Tracks'Access);
 
    procedure Simulate(L1 : Track_Section_Range;
                       L2 : Track_Section_Range;
@@ -25,13 +19,15 @@ procedure Main is
 
       -- Reset all track locks. We want to start with a completely new scenario.
       for I in Track_Section_Range loop
-         Track_Sections(I).Leave;
+         Tracks(I).Leave;
       end loop;
 
       -- Occupy the track sections where the trains start from.
-      Track_Sections(L1).Enter;
-      Track_Sections(L2).Enter;
-      Track_Sections(L3).Enter;
+      Tracks(L1).Enter;
+      Tracks(L2).Enter;
+      Tracks(L3).Enter;
+
+      Trains(1).Drive(Integer(L1), 5);
 
       Put_Line("  L1: 1 -> 4, L2: 2 -> 5, L3: 5 -> 1");
       null;

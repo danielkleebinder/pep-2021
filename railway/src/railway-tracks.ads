@@ -7,11 +7,15 @@ package Railway.Tracks is
    -- free at the time.
    protected type Track_Section is
       entry Enter;
-      entry Leave;
+      procedure Leave;
       function Is_Occupied return Boolean;
    private
       Occupied : Boolean := False;
    end Track_Section;
+   
+   -- Defines additional types necessary for the simulation
+   type Track_Section_Range is range 1..5;
+   type Track_System is array (Track_Section_Range) of Track_Section;
 
    
 end Railway.Tracks;

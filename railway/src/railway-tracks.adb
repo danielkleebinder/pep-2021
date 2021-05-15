@@ -7,13 +7,10 @@ package body Railway.Tracks is
       -- other Train at the time. Trains will wait until the section if free again.
       entry Enter
         when not Occupied is
-      begin
-         Occupied := True;
-      end Enter;
+      begin Occupied := True; end Enter;
       
       -- Trains can of course only leave a track section if it was occupied beforehand.
-      entry Leave
-        when Occupied is
+      procedure Leave is
       begin
          Occupied := False;
       end Leave;
