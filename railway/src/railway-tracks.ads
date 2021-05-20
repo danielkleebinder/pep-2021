@@ -14,8 +14,12 @@ package Railway.Tracks is
    end Track_Section;
    
    -- Defines additional types necessary for the simulation
-   type Track_Section_Range is range 1..5;
-   type Track_System is array (Track_Section_Range) of Track_Section;
+   type Track_System_Index is range 1..5;
+   type Track_System is array (Track_System_Index) of Track_Section;
+   type Track_System_Ptr is access Track_System;
+   
+   type Track_Route_Index is range 1..3;
+   type Track_Route is array (Track_Route_Index) of Track_System_Index;
 
    
 end Railway.Tracks;

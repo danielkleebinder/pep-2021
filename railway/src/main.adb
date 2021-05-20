@@ -5,34 +5,43 @@ use Ada.Text_IO, Ada.Calendar, Railway.Tracks, Railway.Trains;
 procedure Main is
 
    Program_Start_Time : Time := Clock;
-
    Simulation_Count : Natural := 0;
 
-   Tracks : aliased Track_System;
-   Trains : array (Train_Range) of Train(Tracks'Access);
-
-   procedure Simulate(L1 : Track_Section_Range;
-                      L2 : Track_Section_Range;
-                      L3 : Track_Section_Range) is
+   function Simulate(L1_Schedule : Train_Schedule_Ptr;
+                     L2_Schedule : Train_Schedule_Ptr;
+                     L3_Schedule : Train_Schedule_Ptr) return Boolean is
+      Tracks   : Track_System_Ptr := new Track_System;
+      Train_L1 : Train (Tracks, L1_Schedule);
+      Train_L2 : Train (Tracks, L2_Schedule);
+      Train_L3 : Train (Tracks, L3_Schedule);
    begin
-      Simulation_Count := Simulation_Count + 1;
-
-      -- Reset all track locks. We want to start with a completely new scenario.
-      for I in Track_Section_Range loop
-         Tracks(I).Leave;
-      end loop;
-
-      -- Occupy the track sections where the trains start from.
-      Tracks(L1).Enter;
-      Tracks(L2).Enter;
-      Tracks(L3).Enter;
-
-      Trains(1).Drive(Integer(L1), 5);
-
-      Put_Line("  L1: 1 -> 4, L2: 2 -> 5, L3: 5 -> 1");
-      null;
+      select
+         delay 1.0;
+         abort Train_L1;
+         abort Train_L2;
+         abort Train_L3;
+         return False;
+      then abort
+         Train_L1.Arrived;
+         Train_L2.Arrived;
+         Train_L3.Arrived;
+      end select;
+      return True;
    end Simulate;
 
+   procedure Print_Simulation_Result(L1_Schedule : Train_Schedule_Ptr;
+                                     L2_Schedule : Train_Schedule_Ptr;
+                                     L3_Schedule : Train_Schedule_Ptr;
+                                     Can_Be_Simulated : Boolean) is
+   begin
+      if Can_Be_Simulated then Put_Line("SUCCESS");
+      else Put_Line("DEADLOCK"); end if;
+   end Print_Simulation_Result;
+
+   Can_Be_Simulated : Boolean := False;
+   Train_L1_Schedule : Train_Schedule_Ptr := new Train_Schedule'(0.00, (1, 1, 1));
+   Train_L2_Schedule : Train_Schedule_Ptr := new Train_Schedule'(0.01, (1, 1, 1));
+   Train_L3_Schedule : Train_Schedule_Ptr := new Train_Schedule'(0.02, (1, 1, 1));
 
 begin
    Put_Line("");
@@ -52,17 +61,23 @@ begin
 
 
    -- Start the simulation with every train on its own track. These loops will assure that
-   -- every possible combination will be simulated. On 5 tracks with 3 trains that is 5^3
-   -- combinations. I.e. 125.
-   for L1 in Track_Section_Range loop
-      for L2 in Track_Section_Range loop
-         for L3 in Track_Section_Range loop
+   -- every possible combination will be simulated.
+   for L1 in Track_System_Index loop
+      for L2 in Track_System_Index loop
+         for L3 in Track_System_Index loop
 
             -- Two trains cannot be on the same track at the same time and trains are not
             -- allowed to start on track 3 as well
             if L1 /= 3 and L2 /= 3 and L3 /= 3
               and L1 /= L2 and L2 /= L3 and L1 /= L3 then
-               Simulate(L1, L2, L3);
+
+               Train_L1_Schedule.all.Route := (L1, 3, 1);
+               Train_L2_Schedule.all.Route := (L2, 3, 2);
+               Train_L3_Schedule.all.Route := (L3, 3, 4);
+
+               Simulation_Count := Simulation_Count + 1;
+               Can_Be_Simulated := Simulate(Train_L1_Schedule, Train_L2_Schedule, Train_L3_Schedule);
+               Print_Simulation_Result(Train_L1_Schedule, Train_L2_Schedule, Train_L3_Schedule, Can_Be_Simulated);
             end if;
 
          end loop;
@@ -77,3 +92,4 @@ begin
    Put_Line("");
 
 end Main;
+

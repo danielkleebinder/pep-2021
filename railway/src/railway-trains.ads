@@ -4,13 +4,18 @@ use Railway.Tracks;
 package Railway.Trains is
    
    
-   task type Train (Tracks : access Track_System) is
-      entry Drive (Departure : Natural;
-                   Destination: Natural);
+   type Train_Schedule is record
+      Departure : Duration;
+      Route     : Track_Route;
+   end record;
+   
+   type Train_Schedule_Ptr is access Train_Schedule;
+   
+
+   task type Train (Tracks   : Track_System_Ptr;
+                    Schedule : Train_Schedule_Ptr) is
       entry Arrived;
    end Train;
-   
-   type Train_Range is range 1..3;
 
 
 end Railway.Trains;
