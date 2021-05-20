@@ -7,17 +7,18 @@ package body Railway.Trains is
       Departure       : Duration := Schedule.all.Departure;
       Has_Predecessor : Boolean := False;
    begin
-      
-      -- All trains have a certain departure time. This is simulated by this initial delay.
-      delay Departure;
          
       for I in Track_Route_Index loop
          Tracks.all(Schedule.all.Route(I)).Enter;
          
-         -- Trains enter a new track section before leaving the previous one. So this here checks
-         -- if there has been a previous track section. If so, we leave it after enterin it.
          if Has_Predecessor then
+            -- Trains enter a new track section before leaving the previous one. So this here checks
+            -- if there has been a previous track section. If so, we leave it after enterin it.
             Tracks.all(Schedule.all.Route(I - 1)).Leave;
+         else
+            -- All trains have a certain departure time. This is simulated by this initial delay. Trains
+            -- wait on their first track for departure so to say.
+            delay Departure;
          end if;
             
          Has_Predecessor := True;
