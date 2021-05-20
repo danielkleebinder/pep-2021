@@ -1,3 +1,29 @@
+------------------------------------------------------------------------------
+--                                                                          --
+--                     Parallel and Real-Time Computing                     --
+--                                                                          --
+--                            E X E R C I S E  3                            --
+--                                                                          --
+--                                 S p e c                                  --
+--                                                                          --
+--                             Daniel Kleebinder                            --
+--                                                                          --
+-- This railway simulation tries to simulate all possible scenarios for a   --
+-- given railway system. It uses tasks and protected objects to simulate th --
+-- e traffic on those tracks. Some of these scenarios will inevitably lead  --
+-- to deadlocks which are also handled by this application. The railway sys --
+-- tem looks like the following:                                            --
+--                                                                          --
+--                    __1_____                 _____5__                     --
+--                            \               /                             --
+--                    __2______\______3______/______4__                     --
+--                                                                          --
+-- Three distinct trains try to drive throught this system without blocking --
+-- each other.                                                              --
+--                                                                          --
+------------------------------------------------------------------------------
+
+
 with Ada.Text_IO, Ada.Calendar,
      Railway.Simulation,
      Railway.Trains,
@@ -11,12 +37,14 @@ use Ada.Text_IO, Ada.Calendar,
 
 procedure Main is
 
+   -- I just wanted some metrics for later on
    Program_Start_Time : Time := Clock;
-
    Total_Count    : Natural := 0;
    Success_Count  : Natural := 0;
    Deadlock_Count : Natural := 0;
 
+
+   -- Prints the simulation results in a humanly readable fashion.
    procedure Print_Simulation_Result(L1_Schedule : Train_Schedule_Ptr;
                                      L2_Schedule : Train_Schedule_Ptr;
                                      L3_Schedule : Train_Schedule_Ptr;
@@ -33,6 +61,8 @@ procedure Main is
    end Print_Simulation_Result;
 
 
+   -- Runs a single scenario using the Railway package. Also keeps track of successful and
+   -- non-successful simulations and prints it.
    procedure Run_Scenario(L1_Time : Duration; L1_Departure : Track_System_Index; L1_Destination : Track_System_Index;
                           L2_Time : Duration; L2_Departure : Track_System_Index; L2_Destination : Track_System_Index;
                           L3_Time : Duration; L3_Departure : Track_System_Index; L3_Destination : Track_System_Index) is
@@ -59,6 +89,7 @@ procedure Main is
 
    end Run_Scenario;
 
+   -- Some auxiliary variables to compute the correct destination track for each train
    Dest1, Dest2, Dest3 : Track_System_Index;
 
 begin
@@ -74,7 +105,7 @@ begin
    Put_Line("");
    Put_Line("        (using 3 trains and 5 track sections)");
    Put_Line("");
-   Put_Line("Please lean back a little, this simulation takes around 1 minute :-)");
+   Put_Line("Please lean back a little, this simulation takes around 2 minutes :-)");
    Put_Line("");
    Put_Line("Simulations:");
 
@@ -100,21 +131,34 @@ begin
                         Dest2 := Track_System_Index(if L2 < 3 then 3 + D2 else D2);
                         Dest3 := Track_System_Index(if L3 < 3 then 3 + D3 else D3);
 
-                        -- It makes no sense that two trains drive to the same destination, they will
-                        -- create a deadlock anyways. So I allow myself to skip this simulation in this
-                        -- place. You can enable it if you want to. The simulation time will double.
-                        if Dest1 /= Dest2 and Dest2 /= Dest3 and Dest3 /= Dest1 then
+                        if
+                          -- Just used to allow future developer of the application to test certain conditions
+                          -- in this if-statement.
+                          True
+
+                          -- It makes no sense that two trains drive to the same destination, they will
+                          -- create a deadlock anyways. So I allow myself to skip this simulation in this
+                          -- place. You can enable it if you want to. The simulation time will double.
+                          and Dest1 /= Dest2 and Dest2 /= Dest3 and Dest3 /= Dest1
+
+                          -- Also if two trains try to swap their location it will lead to a deadlock. This
+                          -- is due to the fact, that trains cannot drive to a track where they temporarily
+                          -- stay until the swap was done. You can enable these scenarios if you want. The
+                          -- simulation time will again double.
+                          and (not (L1 = Dest2 and L2 = Dest1))
+                          and (not (L1 = Dest3 and L3 = Dest1))
+                          and (not (L2 = Dest3 and L3 = Dest2))
+                        then
 
                            -- I directly unrolled this 3-dimensional for loop to just the 6 distinct
                            -- departure time calls. This makes the program code less complex and a
                            -- tiny bit more performant.
-                           Run_Scenario(0.03, L1, Dest1, 0.06, L2, Dest2, 0.09, L3, Dest3);
-                           Run_Scenario(0.03, L1, Dest1, 0.09, L2, Dest2, 0.06, L3, Dest3);
-                           Run_Scenario(0.06, L1, Dest1, 0.03, L2, Dest2, 0.09, L3, Dest3);
-                           Run_Scenario(0.06, L1, Dest1, 0.09, L2, Dest2, 0.03, L3, Dest3);
-                           Run_Scenario(0.09, L1, Dest1, 0.03, L2, Dest2, 0.06, L3, Dest3);
-                           Run_Scenario(0.09, L1, Dest1, 0.06, L2, Dest2, 0.03, L3, Dest3);
-                           --Total_Count := Total_Count + 6;
+                           Run_Scenario(0.02, L1, Dest1, 0.04, L2, Dest2, 0.06, L3, Dest3);
+                           Run_Scenario(0.02, L1, Dest1, 0.06, L2, Dest2, 0.04, L3, Dest3);
+                           Run_Scenario(0.04, L1, Dest1, 0.02, L2, Dest2, 0.06, L3, Dest3);
+                           Run_Scenario(0.04, L1, Dest1, 0.06, L2, Dest2, 0.02, L3, Dest3);
+                           Run_Scenario(0.06, L1, Dest1, 0.02, L2, Dest2, 0.04, L3, Dest3);
+                           Run_Scenario(0.06, L1, Dest1, 0.04, L2, Dest2, 0.02, L3, Dest3);
                         end if;
                      end loop;
                   end loop;
@@ -128,6 +172,7 @@ begin
    end loop;
 
 
+   -- Done, print some metrics and say bye to our user
    Put_Line("");
    Put_Line("Ran" & Natural'Image(Total_Count) & " distinct scenarios with");
    Put_Line("  -" & Natural'Image(Success_Count) & " successful simulations and");

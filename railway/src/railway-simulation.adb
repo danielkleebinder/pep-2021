@@ -14,12 +14,15 @@ package body Railway.Simulation is
       Train_L3 : Train (Tracks, L3_Schedule);
    begin
       select
+         -- 0.1 seconds should be enough to allow all trains to arrive at their
+         -- destination track. If not, we abort because we ran into a deadlock.
          delay 0.1;
          abort Train_L1;
          abort Train_L2;
          abort Train_L3;
          return False;
       then abort
+         -- Hopefully all trains arrive in time ;-)
          Train_L1.Arrived;
          Train_L2.Arrived;
          Train_L3.Arrived;
